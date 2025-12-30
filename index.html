@@ -2,258 +2,221 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Studio Tay Bénesse - Agendamento</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Studio Tay Bénesse</title>
 
 <style>
+*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
 body{
-  font-family: Arial;
-  background:#f2f2f2;
+  margin:0;
+  background:#f4f4f4;
+}
+.page{
+  display:none;
+  min-height:100vh;
   padding:20px;
 }
-.box{
+.page.active{display:block}
+
+h1{text-align:center;color:#333}
+.card{
   background:#fff;
-  max-width:500px;
-  margin:auto;
   padding:20px;
-  border-radius:10px;
+  border-radius:16px;
+  box-shadow:0 10px 25px rgba(0,0,0,.1);
 }
-input,button{
+button{
   width:100%;
-  padding:10px;
-  font-size:16px;
-  margin:10px 0;
+  padding:15px;
+  font-size:18px;
+  border:none;
+  border-radius:12px;
+  background:#2ecc71;
+  color:#fff;
+  margin-top:15px;
 }
-button{cursor:pointer}
-.hidden{display:none}
-.msg{color:red;font-size:14px}
-.item{border-bottom:1px solid #ddd;padding:8px 0}
+button:disabled{background:#aaa}
+
+input{
+  width:100%;
+  padding:15px;
+  font-size:22px;
+  text-align:center;
+  border-radius:12px;
+  border:2px solid #ddd;
+}
+
+/* calendário */
+.calendar{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:8px;
+  margin-top:10px;
+}
+.day{
+  padding:12px 0;
+  text-align:center;
+  border-radius:10px;
+  font-weight:bold;
+}
+.day.green{background:#2ecc71;color:#fff}
+.day.red{background:#e74c3c;color:#fff}
+.day.selected{outline:4px solid #000}
+
+/* procedimentos */
+.proc{
+  display:flex;
+  justify-content:space-between;
+  padding:12px;
+  border-bottom:1px solid #eee;
+}
 </style>
 </head>
 
 <body>
 
 <!-- PÁGINA 1 -->
-<div class="box" id="pg1">
-  <h2>Escolha o horário</h2>
-  <input id="hora" placeholder="Ex: 1325 (13:25)" maxlength="4">
+<div class="page active" id="p1">
+<h1>Escolha Data e Horário</h1>
+<div class="card">
+<div id="calendar" class="calendar"></div>
 
-  <h2>Escolha a data</h2>
-  <input type="date" id="data">
-
-  <div class="msg" id="msg1"></div>
-  <button onclick="pagina1()">OK</button>
+<br>
+<input id="hora" inputmode="numeric" placeholder="HH:MM" maxlength="5">
+<button id="p1btn" disabled>Continuar</button>
+</div>
 </div>
 
 <!-- PÁGINA 2 -->
-<div class="box hidden" id="pg2">
-  <h2>Escolha os procedimentos</h2>
-
-  <div class="item">
-    <input type="checkbox" data-nome="Reconstrução De Sobracelhas" data-tempo="25" data-valor="750">
-    Reconstrução – 25min – R$750
-  </div>
-
-  <div class="item">
-    <input type="checkbox" data-nome="Micropigmentação Shadow" data-tempo="120" data-valor="550">
-    Micropigmentação – 2h00 – R$550
-  </div>
-
-  <div class="item">
-    <input type="checkbox" data-nome="Remoção a Laser" data-tempo="20" data-valor="250">
-    Laser – 20min – Apartir de R$250
-  </div>
-
-  <div class="item">
-    <input type="checkbox" data-nome="Reconstrução de nada" data-tempo="50" data-valor="200">
-    Laser – 50min – Apartir de R$200
-  </div>
-
-  <div class="msg" id="msg2"></div>
-  <button onclick="pagina2()">OK</button>
+<div class="page" id="p2">
+<h1>Procedimentos</h1>
+<div class="card" id="procs"></div>
+<button id="p2btn" disabled>Continuar</button>
 </div>
 
 <!-- PÁGINA 3 -->
-<div class="box hidden" id="pg3">
-  <h2>Resumo</h2>
-  <div id="resumo"></div>
-  <button onclick="pagina3()">Ir para pagamento</button>
+<div class="page" id="p3">
+<h1>Resumo</h1>
+<div class="card" id="resumo"></div>
+<button onclick="go(4)">Pagar</button>
 </div>
 
-<!-- PÁGINA 5 - PAGAMENTO -->
-<div class="box hidden" id="pg5">
-  <h2>Pagamento via Pix (Nubank)</h2>
-
-  <div id="resumoPagamento"></div>
-
-  <p><b>Tempo para pagamento:</b> <span id="contador">03:00</span></p>
-
-  <div id="pixArea">
-    <p><b>Chave Pix (Celular):</b></p>
-    <input id="pix" readonly>
-    <button onclick="copiarPix()">Copiar chave Pix</button>
-  </div>
-
-  <button id="novoLink" class="hidden" onclick="pedirOutroLink()">
-    Pedir outro link
-  </button>
-
-  <button onclick="enviarComprovante()">Enviar comprovante</button>
+<!-- PÁGINA 4 -->
+<div class="page" id="p4">
+<h1>Pagamento</h1>
+<div class="card">
+<p>Link válido por <span id="timer">600</span> segundos</p>
+<a id="paylink" href="#" target="_blank">
+<button>Pagar agora</button>
+</a>
+</div>
 </div>
 
+<!-- SCRIPT -->
 <script>
-// 🔴 TROQUE AQUI
-const chavePix = "6799637368"; // celular Pix da sua mãe
-const whatsappMae = "(67)9963-7368"; // WhatsApp da sua mãe
-
-const feriados=["2025-01-01","2025-04-21","2025-05-01","2025-12-25"];
-let dados={};
-
-// --------- AGENDAMENTO ----------
-function agendados(){
-  return JSON.parse(localStorage.getItem("agendados"))||[];
-}
-function salvar(a){
-  localStorage.setItem("agendados",JSON.stringify(a));
+/* bloqueia computador */
+if(!/Mobi|Android/i.test(navigator.userAgent)){
+  document.body.innerHTML="<h2 style='text-align:center'>Use no celular</h2>";
 }
 
-function pagina1(){
-  let h=hora.value;
-  let d=data.value;
-  msg1.innerText="";
+/* calendário */
+const cal=document.getElementById("calendar");
+let selDate=null;
+let horaInp=document.getElementById("hora");
+let btn1=document.getElementById("p1btn");
 
-  if(h.length!=4||isNaN(h)) return msg1.innerText="Digite a hora corretamente";
-  let hh=+h.slice(0,2);
-  let mm=+h.slice(2);
-  if(hh<7||hh>18||mm>59) return msg1.innerText="Horário inválido";
+const today=new Date();
+const year=today.getFullYear();
+const month=today.getMonth();
 
-  if(!d) return msg1.innerText="Escolha uma data";
+for(let d=1;d<=31;d++){
+  let dt=new Date(year,month,d);
+  if(dt.getMonth()!=month) continue;
 
-  let hoje=new Date(); hoje.setHours(0,0,0,0);
-  if(new Date(d)<hoje) return msg1.innerText="Esse dia já passou";
-  if(feriados.includes(d)) return msg1.innerText="Esse dia é feriado";
+  let div=document.createElement("div");
+  div.className="day";
 
-  for(let a of agendados()){
-    if(a.h==h&&a.d==d) return msg1.innerText="Horário já escolhido";
-  }
-
-  let a=agendados();
-  a.push({h,d});
-  salvar(a);
-
-  dados.h=h;
-  dados.d=d;
-
-  pg1.classList.add("hidden");
-  pg2.classList.remove("hidden");
-}
-
-function pagina2(){
-  let sel=[...document.querySelectorAll("input[type=checkbox]:checked")];
-  if(sel.length==0) return msg2.innerText="Escolha ao menos um procedimento";
-
-  dados.lista=sel.map(i=>({
-    nome:i.dataset.nome,
-    tempo:+i.dataset.tempo,
-    valor:+i.dataset.valor
-  }));
-
-  let tempo=0,valor=0;
-  dados.lista.forEach(i=>{
-    tempo+=i.tempo;
-    valor+=i.valor;
-  });
-
-  let hh=+dados.h.slice(0,2);
-  let mm=+dados.h.slice(2)+tempo;
-  hh+=Math.floor(mm/60);
-  mm%=60;
-
-  resumo.innerHTML=`
-    <b>Data:</b> ${dados.d}<br>
-    <b>Entrada:</b> ${dados.h.slice(0,2)}:${dados.h.slice(2)}<br>
-    <b>Saída:</b> ${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}<br>
-    <b>Total:</b> R$ ${valor}
-  `;
-
-  pg2.classList.add("hidden");
-  pg3.classList.remove("hidden");
-}
-
-function pagina3(){
-  pg3.classList.add("hidden");
-  pg5.classList.remove("hidden");
-
-  pix.value = chavePix;
-
-  let lista = dados.lista.map(i=>"- "+i.nome).join("<br>");
-  let total = dados.lista.reduce((s,i)=>s+i.valor,0);
-
-  resumoPagamento.innerHTML = `
-    <b>Data:</b> ${dados.d}<br>
-    <b>Horário:</b> ${dados.h.slice(0,2)}:${dados.h.slice(2)}<br><br>
-    <b>Procedimentos:</b><br>${lista}<br><br>
-    <b>Total:</b> R$ ${total}
-  `;
-
-  iniciarContador();
-}
-
-// --------- CONTADOR PIX ----------
-let tempoPix = 600;
-let timerPix;
-
-function iniciarContador(){
-  clearInterval(timerPix);
-  tempoPix = 600;
-  contador.innerText="10:00";
-  pixArea.classList.remove("hidden");
-  novoLink.classList.add("hidden");
-
-  timerPix = setInterval(()=>{
-    tempoPix--;
-    let m=Math.floor(tempoPix/60);
-    let s=tempoPix%60;
-    contador.innerText=
-      String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
-
-    if(tempoPix<=0){
-      clearInterval(timerPix);
-      pixArea.classList.add("hidden");
-      contador.innerText="00:00";
-      novoLink.classList.remove("hidden");
+  if(dt<today || dt.getDay()==0){
+    div.classList.add("red");
+  }else{
+    div.classList.add("green");
+    div.onclick=()=>{
+      document.querySelectorAll(".day").forEach(x=>x.classList.remove("selected"));
+      div.classList.add("selected");
+      selDate=dt;
+      checkP1();
     }
-  },1000);
+  }
+  div.innerText=d;
+  cal.appendChild(div);
 }
 
-function pedirOutroLink(){
-  iniciarContador();
+/* horário automático */
+horaInp.addEventListener("input",()=>{
+  let v=horaInp.value.replace(/\D/g,"");
+  if(v.length>=3) horaInp.value=v.slice(0,2)+":"+v.slice(2,4);
+  checkP1();
+});
+
+function checkP1(){
+  if(!selDate) return;
+  let h=horaInp.value;
+  if(!/^\d\d:\d\d$/.test(h)) return;
+  let hh=parseInt(h.split(":")[0]);
+  if(hh<7||hh>18) return;
+  btn1.disabled=false;
 }
 
-// --------- AÇÕES ----------
-function copiarPix(){
-  pix.select();
-  document.execCommand("copy");
-  alert("Chave Pix copiada!");
-}
+btn1.onclick=()=>go(2);
 
-function enviarComprovante(){
-  let texto =
-`Olá, fiz o pagamento do agendamento.
+/* procedimentos */
+const procedimentos=[
+ {n:"Design de Sobrancelha",t:60,v:150},
+ {n:"Limpeza de Pele",t:90,v:200},
+ {n:"Micropigmentação",t:120,v:600}
+];
 
-Data: ${dados.d}
-Horário: ${dados.h.slice(0,2)}:${dados.h.slice(2)}
+const procsDiv=document.getElementById("procs");
+let escolhidos=[];
+procedimentos.forEach((p,i)=>{
+  let d=document.createElement("div");
+  d.className="proc";
+  d.innerHTML=`<label><input type="checkbox" data-i="${i}"> ${p.n}</label>
+  <span>${p.t}min R$${p.v}</span>`;
+  procsDiv.appendChild(d);
+});
 
-Procedimentos:
-${dados.lista.map(i=>"- "+i.nome).join("\n")}
+document.querySelectorAll("input[type=checkbox]").forEach(c=>{
+  c.onchange=()=>{
+    escolhidos=[...document.querySelectorAll("input:checked")].map(x=>procedimentos[x.dataset.i]);
+    document.getElementById("p2btn").disabled=escolhidos.length==0;
+  }
+});
 
-Valor total: R$ ${dados.lista.reduce((s,i)=>s+i.valor,0)}
+document.getElementById("p2btn").onclick=()=>{
+  let total=0,time=0;
+  escolhidos.forEach(p=>{total+=p.v;time+=p.t});
+  document.getElementById("resumo").innerHTML=
+  `Data: ${selDate.toLocaleDateString()}<br>
+   Início: ${horaInp.value}<br>
+   Duração: ${time} min<br>
+   Total: R$${total}`;
+  document.getElementById("paylink").href="https://nubank.com.br";
+  go(3);
+};
 
-Segue o comprovante.`;
+/* timer */
+let t=600;
+setInterval(()=>{
+ if(t>0){
+  t--;
+  document.getElementById("timer").innerText=t;
+ }
+},1000);
 
-  window.open(
-    "https://wa.me/"+whatsappMae+"?text="+encodeURIComponent(texto),
-    "_blank"
-  );
+function go(n){
+ document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+ document.getElementById("p"+n).classList.add("active");
 }
 </script>
 

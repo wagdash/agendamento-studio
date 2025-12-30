@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Studio Tay Bénesse - Agendamento</title>
+
+<style>
+body{
+  font-family: Arial;
+  background:#f2f2f2;
+  padding:20px;
+}
+.box{
+  background:#fff;
+  max-width:500px;
+  margin:auto;
+  padding:20px;
+  border-radius:10px;
+}
+input,button{
+  width:100%;
+  padding:10px;
+  font-size:16px;
+  margin:10px 0;
+}
+button{cursor:pointer}
+.hidden{display:none}
+.msg{color:red;font-size:14px}
+.item{border-bottom:1px solid #ddd;padding:8px 0}
+</style>
+</head>
+
+<body>
+
+<!-- PÁGINA 1 -->
+<div class="box" id="pg1">
+  <h2>Escolha o horário</h2>
+  <input id="hora" placeholder="Ex: 1325 (13:25)" maxlength="4">
+
+  <h2>Escolha a data</h2>
+  <input type="date" id="data">
+
+  <div class="msg" id="msg1"></div>
+  <button onclick="pagina1()">OK</button>
+</div>
+
+<!-- PÁGINA 2 -->
+<div class="box hidden" id="pg2">
+  <h2>Escolha os procedimentos</h2>
+
+  <div class="item">
+    <input type="checkbox" data-nome="Reconstrução De Sobracelhas" data-tempo="25" data-valor="750">
+    Reconstrução – 25min – R$750
+  </div>
+
+  <div class="item">
+    <input type="checkbox" data-nome="Micropigmentação Shadow" data-tempo="120" data-valor="550">
+    Micropigmentação – 2h00 – R$550
+  </div>
+
+  <div class="item">
+    <input type="checkbox" data-nome="Remoção a Laser" data-tempo="20" data-valor="250">
+    Laser – 20min – Apartir de R$250
+  </div>
+
+  <div class="item">
+    <input type="checkbox" data-nome="Reconstrução de nada" data-tempo="50" data-valor="200">
+    Laser – 50min – Apartir de R$200
+  </div>
+
+  <div class="msg" id="msg2"></div>
+  <button onclick="pagina2()">OK</button>
+</div>
+
+<!-- PÁGINA 3 -->
+<div class="box hidden" id="pg3">
+  <h2>Resumo</h2>
+  <div id="resumo"></div>
+  <button onclick="pagina3()">Ir para pagamento</button>
+</div>
+
+<!-- PÁGINA 5 - PAGAMENTO -->
+<div class="box hidden" id="pg5">
+  <h2>Pagamento via Pix (Nubank)</h2>
+
+  <div id="resumoPagamento"></div>
+
+  <p><b>Tempo para pagamento:</b> <span id="contador">03:00</span></p>
+
+  <div id="pixArea">
+    <p><b>Chave Pix (Celular):</b></p>
+    <input id="pix" readonly>
+    <button onclick="copiarPix()">Copiar chave Pix</button>
+  </div>
+
+  <button id="novoLink" class="hidden" onclick="pedirOutroLink()">
+    Pedir outro link
+  </button>
+
+  <button onclick="enviarComprovante()">Enviar comprovante</button>
+</div>
+
+<script>
+// 🔴 TROQUE AQUI
+const chavePix = "6799637368"; // celular Pix da sua mãe
+const whatsappMae = "(67)9963-7368"; // WhatsApp da sua mãe
+
+const feriados=["2025-01-01","2025-04-21","2025-05-01","2025-12-25"];
+let dados={};
+
+// --------- AGENDAMENTO ----------
+function agendados(){
+  return JSON.parse(localStorage.getItem("agendados"))||[];
+}
+function salvar(a){
+  localStorage.setItem("agendados",JSON.stringify(a));
+}
+
+function pagina1(){
+  let h=hora.value;
+  let d=data.value;
+  msg1.innerText="";
+
+  if(h.length!=4||isNaN(h)) return msg1.innerText="Digite a hora corretamente";
+  let hh=+h.slice(0,2);
+  let mm=+h.slice(2);
+  if(hh<7||hh>18||mm>59) return msg1.innerText="Horário inválido";
+
+  if(!d) return msg1.innerText="Escolha uma data";
+
+  let hoje=new Date(); hoje.setHours(0,0,0,0);
+  if(new Date(d)<hoje) return msg1.innerText="Esse dia já passou";
+  if(feriados.includes(d)) return msg1.innerText="Esse dia é feriado";
+
+  for(let a of agendados()){
+    if(a.h==h&&a.d==d) return msg1.innerText="Horário já escolhido";
+  }
+
+  let a=agendados();
+  a.push({h,d});
+  salvar(a);
+
+  dados.h=h;
+  dados.d=d;
+
+  pg1.classList.add("hidden");
+  pg2.classList.remove("hidden");
+}
+
+function pagina2(){
+  let sel=[...document.querySelectorAll("input[type=checkbox]:checked")];
+  if(sel.length==0) return msg2.innerText="Escolha ao menos um procedimento";
+
+  dados.lista=sel.map(i=>({
+    nome:i.dataset.nome,
+    tempo:+i.dataset.tempo,
+    valor:+i.dataset.valor
+  }));
+
+  let tempo=0,valor=0;
+  dados.lista.forEach(i=>{
+    tempo+=i.tempo;
+    valor+=i.valor;
+  });
+
+  let hh=+dados.h.slice(0,2);
+  let mm=+dados.h.slice(2)+tempo;
+  hh+=Math.floor(mm/60);
+  mm%=60;
+
+  resumo.innerHTML=`
+    <b>Data:</b> ${dados.d}<br>
+    <b>Entrada:</b> ${dados.h.slice(0,2)}:${dados.h.slice(2)}<br>
+    <b>Saída:</b> ${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}<br>
+    <b>Total:</b> R$ ${valor}
+  `;
+
+  pg2.classList.add("hidden");
+  pg3.classList.remove("hidden");
+}
+
+function pagina3(){
+  pg3.classList.add("hidden");
+  pg5.classList.remove("hidden");
+
+  pix.value = chavePix;
+
+  let lista = dados.lista.map(i=>"- "+i.nome).join("<br>");
+  let total = dados.lista.reduce((s,i)=>s+i.valor,0);
+
+  resumoPagamento.innerHTML = `
+    <b>Data:</b> ${dados.d}<br>
+    <b>Horário:</b> ${dados.h.slice(0,2)}:${dados.h.slice(2)}<br><br>
+    <b>Procedimentos:</b><br>${lista}<br><br>
+    <b>Total:</b> R$ ${total}
+  `;
+
+  iniciarContador();
+}
+
+// --------- CONTADOR PIX ----------
+let tempoPix = 600;
+let timerPix;
+
+function iniciarContador(){
+  clearInterval(timerPix);
+  tempoPix = 600;
+  contador.innerText="10:00";
+  pixArea.classList.remove("hidden");
+  novoLink.classList.add("hidden");
+
+  timerPix = setInterval(()=>{
+    tempoPix--;
+    let m=Math.floor(tempoPix/60);
+    let s=tempoPix%60;
+    contador.innerText=
+      String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
+
+    if(tempoPix<=0){
+      clearInterval(timerPix);
+      pixArea.classList.add("hidden");
+      contador.innerText="00:00";
+      novoLink.classList.remove("hidden");
+    }
+  },1000);
+}
+
+function pedirOutroLink(){
+  iniciarContador();
+}
+
+// --------- AÇÕES ----------
+function copiarPix(){
+  pix.select();
+  document.execCommand("copy");
+  alert("Chave Pix copiada!");
+}
+
+function enviarComprovante(){
+  let texto =
+`Olá, fiz o pagamento do agendamento.
+
+Data: ${dados.d}
+Horário: ${dados.h.slice(0,2)}:${dados.h.slice(2)}
+
+Procedimentos:
+${dados.lista.map(i=>"- "+i.nome).join("\n")}
+
+Valor total: R$ ${dados.lista.reduce((s,i)=>s+i.valor,0)}
+
+Segue o comprovante.`;
+
+  window.open(
+    "https://wa.me/"+whatsappMae+"?text="+encodeURIComponent(texto),
+    "_blank"
+  );
+}
+</script>
+
+</body>
+</html>

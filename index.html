@@ -2,72 +2,31 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Studio Tay Bénesse</title>
 
 <style>
-*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
-body{margin:0;background:#f2f2f2}
-.page{display:none;min-height:100vh;padding:20px}
+body{margin:0;font-family:Arial;background:#f4f4f4}
+.page{display:none;padding:20px}
 .page.active{display:block}
-h1{text-align:center;color:#333}
-.card{
-  background:#fff;
-  padding:20px;
-  border-radius:18px;
-  box-shadow:0 10px 30px rgba(0,0,0,.12)
-}
-button{
-  width:100%;
-  padding:16px;
-  font-size:18px;
-  border:none;
-  border-radius:14px;
-  background:#2ecc71;
-  color:#fff;
-  margin-top:15px
-}
-button:disabled{background:#aaa}
-input,select{
-  width:100%;
-  padding:15px;
-  font-size:20px;
-  border-radius:12px;
-  border:2px solid #ddd;
-  margin-top:10px
-}
+h1{text-align:center}
+button{width:100%;padding:14px;margin-top:15px;border:none;border-radius:12px;background:#000;color:#fff;font-size:16px}
+input{width:100%;padding:14px;font-size:18px;border-radius:12px;border:1px solid #ccc;margin-top:10px;text-align:center}
+.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:15px}
+.day{padding:12px;text-align:center;border-radius:10px;background:#dff6df}
+.day.disabled{background:#ffdede;color:#999}
+.day.selected{background:#000;color:#fff}
+.nav{display:flex;justify-content:space-between;align-items:center}
+.card{background:#fff;padding:15px;border-radius:14px;margin-top:10px}
+label{display:block;margin-top:10px;font-size:16px}
 .msg{
-  margin-top:12px;
+  display:none;
+  background:#ffe9c6;
+  color:#7a4b00;
   padding:12px;
-  border-radius:12px;
-  background:#eee;
-  color:#333;
-  font-size:15px
-}
-
-/* calendário */
-.calendar{
-  display:grid;
-  grid-template-columns:repeat(7,1fr);
-  gap:8px;
-  margin-top:10px
-}
-.day{
-  padding:12px 0;
-  text-align:center;
   border-radius:10px;
-  font-weight:bold
-}
-.day.green{background:#2ecc71;color:#fff}
-.day.red{background:#e74c3c;color:#fff}
-.day.selected{outline:4px solid #000}
-
-/* procedimentos */
-.proc{
-  display:flex;
-  justify-content:space-between;
-  padding:12px 0;
-  border-bottom:1px solid #eee
+  margin-top:12px;
+  font-size:15px;
 }
 </style>
 </head>
@@ -76,194 +35,177 @@ input,select{
 
 <!-- PÁGINA 1 -->
 <div class="page active" id="p1">
-<h1>Data e Horário</h1>
-<div class="card">
-<div class="msg" id="msg1">Escolha uma data e um horário disponível.</div>
-<div id="calendar" class="calendar"></div>
-<input id="hora" inputmode="numeric" placeholder="HH:MM" maxlength="5">
-<button id="btn1" disabled>Continuar</button>
+<h1>Agendamento</h1>
+
+<div class="nav">
+<button onclick="prevMonth()">◀</button>
+<strong id="monthYear"></strong>
+<button onclick="nextMonth()">▶</button>
 </div>
+
+<div class="calendar" id="calendar"></div>
+
+<input id="time" placeholder="HH:MM" maxlength="5">
+
+<div class="msg" id="msg1"></div>
+
+<button onclick="goPage(2)">Continuar</button>
 </div>
 
 <!-- PÁGINA 2 -->
 <div class="page" id="p2">
 <h1>Procedimentos</h1>
+
 <div class="card">
-<div class="msg">Escolha pelo menos um procedimento.</div>
-<div id="procs"></div>
-<button id="btn2" disabled>Continuar</button>
+<label><input type="checkbox" data-time="60" value="Design de Sobrancelhas – R$50"> Design de Sobrancelhas</label>
+<label><input type="checkbox" data-time="90" value="Limpeza de Pele – R$120"> Limpeza de Pele</label>
+<label><input type="checkbox" data-time="120" value="Micropigmentação – R$300"> Micropigmentação</label>
 </div>
+
+<div class="msg" id="msg2"></div>
+
+<button onclick="goPage(3)">Continuar</button>
 </div>
 
 <!-- PÁGINA 3 -->
 <div class="page" id="p3">
-<h1>Resumo</h1>
-<div class="card" id="resumo"></div>
-<button onclick="go(4)">Ir para pagamento</button>
+<h1>Forma de Pagamento</h1>
+
+<div class="card">
+<label><input type="radio" name="pay" value="Pix"> Pix</label>
+<label><input type="radio" name="pay" value="Dinheiro"> Dinheiro</label>
+</div>
+
+<div class="msg" id="msg3"></div>
+
+<button onclick="goPage(4)">Continuar</button>
 </div>
 
 <!-- PÁGINA 4 -->
 <div class="page" id="p4">
-<h1>Pagamento</h1>
-<div class="card">
-<div class="msg">O agendamento só será confirmado após pagamento via PIX.</div>
+<h1>Resumo</h1>
 
-<select id="banco">
-<option value="">Escolha o banco</option>
-<option>Nubank</option>
-<option>Caixa</option>
-<option>Bradesco</option>
-<option>Itaú</option>
-<option>Outro</option>
-</select>
+<div class="card" id="summary"></div>
 
-<div style="margin-top:10px">
-<label><input type="radio" name="pag" value="pix"> Pix</label><br>
-<label><input type="radio" name="pag" value="dinheiro"> Dinheiro (paga no dia)</label>
-</div>
-
-<div class="msg" id="msgPag"></div>
-<button onclick="confirmar()">Confirmar</button>
-</div>
+<button onclick="confirm()">Confirmar Agendamento</button>
 </div>
 
 <script>
-/* BLOQUEIO DESKTOP */
-if(!/Mobi|Android/i.test(navigator.userAgent)){
- document.body.innerHTML="<h2 style='text-align:center'>Use este site apenas no celular</h2>";
+
+let date=new Date()
+let selectedDate=""
+let busy=JSON.parse(localStorage.getItem("busy")||"{}")
+let monthLimit=new Date().getMonth()+3
+
+function showMsg(id,text){
+  let el=document.getElementById(id)
+  el.innerText=text
+  el.style.display="block"
 }
 
-/* CALENDÁRIO */
-const cal=document.getElementById("calendar");
-const msg1=document.getElementById("msg1");
-let selDate=null;
-const hoje=new Date();
-const y=hoje.getFullYear(), m=hoje.getMonth();
+function hideMsg(id){
+  document.getElementById(id).style.display="none"
+}
 
-for(let d=1;d<=31;d++){
- let dt=new Date(y,m,d);
- if(dt.getMonth()!=m) continue;
- let div=document.createElement("div");
- div.className="day";
- if(dt<hoje || dt.getDay()==0){
-  div.classList.add("red");
- }else{
-  div.classList.add("green");
-  div.onclick=()=>{
-   document.querySelectorAll(".day").forEach(x=>x.classList.remove("selected"));
-   div.classList.add("selected");
-   selDate=dt;
-   msg1.innerText="Data selecionada. Agora escolha o horário.";
-   validarP1();
+function goPage(n){
+  if(n===2 && !validP1()) return
+  if(n===3 && !validP2()) return
+  if(n===4 && !validP3()) return
+
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"))
+  document.getElementById("p"+n).classList.add("active")
+
+  if(n===4) buildSummary()
+}
+
+function buildCalendar(){
+  calendar.innerHTML=""
+  monthYear.innerText=date.toLocaleDateString("pt-BR",{month:"long",year:"numeric"})
+  let days=new Date(date.getFullYear(),date.getMonth()+1,0).getDate()
+
+  for(let d=1;d<=days;d++){
+    let div=document.createElement("div")
+    let check=new Date(date.getFullYear(),date.getMonth(),d)
+    div.innerText=d
+    div.className="day"
+
+    if(check < new Date() || check.getDay()===0){
+      div.classList.add("disabled")
+    }else{
+      div.onclick=()=>{
+        document.querySelectorAll(".day").forEach(x=>x.classList.remove("selected"))
+        div.classList.add("selected")
+        selectedDate=check.toLocaleDateString("pt-BR")
+        hideMsg("msg1")
+      }
+    }
+    calendar.appendChild(div)
   }
- }
- div.innerText=d;
- cal.appendChild(div);
 }
 
-/* HORÁRIO */
-const horaInp=document.getElementById("hora");
-horaInp.addEventListener("input",()=>{
- let v=horaInp.value.replace(/\D/g,"");
- if(v.length>=3) horaInp.value=v.slice(0,2)+":"+v.slice(2,4);
- validarP1();
-});
-
-function getKey(d){return d.toISOString().split("T")[0];}
-function ocupado(d,h){
- let a=JSON.parse(localStorage.getItem("agenda")||"{}");
- return a[getKey(d)]?.includes(h);
-}
-function salvar(d,h){
- let a=JSON.parse(localStorage.getItem("agenda")||"{}");
- let k=getKey(d);
- if(!a[k]) a[k]=[];
- a[k].push(h);
- localStorage.setItem("agenda",JSON.stringify(a));
+function prevMonth(){
+  if(date.getMonth()===new Date().getMonth()) return
+  date.setMonth(date.getMonth()-1)
+  buildCalendar()
 }
 
-function validarP1(){
- if(!selDate) return;
- if(!/^\d\d:\d\d$/.test(horaInp.value)) return;
- let h=parseInt(horaInp.value);
- if(h<7||h>18){
-  msg1.innerText="Horário permitido apenas das 07:00 às 18:00.";
-  return;
- }
- if(ocupado(selDate,horaInp.value)){
-  msg1.innerText="Esse horário já foi escolhido. Escolha outro.";
-  return;
- }
- msg1.innerText="Horário disponível.";
- document.getElementById("btn1").disabled=false;
+function nextMonth(){
+  if(date.getMonth()>=monthLimit) return
+  date.setMonth(date.getMonth()+1)
+  buildCalendar()
 }
 
-document.getElementById("btn1").onclick=()=>go(2);
+time.addEventListener("input",e=>{
+  let v=e.target.value.replace(/\D/g,"")
+  if(v.length>=3) v=v.slice(0,2)+":"+v.slice(2,4)
+  e.target.value=v
+  hideMsg("msg1")
+})
 
-/* PROCEDIMENTOS */
-const procedimentos=[
- {n:"Design de Sobrancelha",t:60,v:150},
- {n:"Limpeza de Pele",t:90,v:200},
- {n:"Micropigmentação",t:120,v:600}
-];
-
-let escolhidos=[];
-const procs=document.getElementById("procs");
-procedimentos.forEach((p,i)=>{
- let d=document.createElement("div");
- d.className="proc";
- d.innerHTML=`<label><input type="checkbox" data-i="${i}"> ${p.n}</label>
- <span>${p.t}min R$${p.v}</span>`;
- procs.appendChild(d);
-});
-
-document.querySelectorAll("input[type=checkbox]").forEach(c=>{
- c.onchange=()=>{
-  escolhidos=[...document.querySelectorAll("input:checked")].map(x=>procedimentos[x.dataset.i]);
-  document.getElementById("btn2").disabled=escolhidos.length==0;
- }
-});
-
-document.getElementById("btn2").onclick=()=>{
- let total=0,time=0;
- let txt="";
- escolhidos.forEach(p=>{
-  total+=p.v; time+=p.t;
-  txt+=`${p.n}<br>`;
- });
- document.getElementById("resumo").innerHTML=
- `Data: ${selDate.toLocaleDateString()}<br>
- Início: ${horaInp.value}<br>
- Duração: ${time} min<br><br>
- ${txt}<br>
- Total: R$${total}`;
- go(3);
-};
-
-/* PAGAMENTO */
-function confirmar(){
- const banco=document.getElementById("banco").value;
- const forma=document.querySelector("input[name=pag]:checked");
- const msg=document.getElementById("msgPag");
-
- if(!banco||!forma){
-  msg.innerText="Escolha o banco e a forma de pagamento.";
-  return;
- }
-
- if(forma.value==="dinheiro"){
-  msg.innerText="Pagamento em dinheiro é feito no dia. Agendamento não confirmado.";
-  return;
- }
-
- salvar(selDate,horaInp.value);
- msg.innerText="Pagamento via PIX confirmado. Horário agendado com sucesso ✔️";
+function validP1(){
+  if(!selectedDate){showMsg("msg1","Escolha uma data disponível.");return false}
+  let t=time.value
+  if(!/^([0-1]\d|2[0-3]):[0-5]\d$/.test(t)){showMsg("msg1","Digite um horário válido.");return false}
+  if(t<"07:00"||t>"18:00"){showMsg("msg1","Horário fora do expediente.");return false}
+  if(busy[selectedDate]?.includes(t)){showMsg("msg1","Esse horário já foi agendado.");return false}
+  return true
 }
 
-function go(n){
- document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
- document.getElementById("p"+n).classList.add("active");
+function validP2(){
+  if(!document.querySelector("input[type=checkbox]:checked")){
+    showMsg("msg2","Escolha pelo menos um procedimento.")
+    return false
+  }
+  hideMsg("msg2")
+  return true
 }
+
+function validP3(){
+  if(!document.querySelector("input[name=pay]:checked")){
+    showMsg("msg3","Escolha a forma de pagamento.")
+    return false
+  }
+  hideMsg("msg3")
+  return true
+}
+
+function buildSummary(){
+  let txt=`<b>Data:</b> ${selectedDate}<br><b>Horário:</b> ${time.value}<br><br>`
+  document.querySelectorAll("input[type=checkbox]:checked").forEach(c=>{
+    txt+=`• ${c.value}<br>`
+  })
+  txt+=`<br><b>Pagamento:</b> ${document.querySelector("input[name=pay]:checked").value}`
+  summary.innerHTML=txt
+}
+
+function confirm(){
+  busy[selectedDate]=busy[selectedDate]||[]
+  busy[selectedDate].push(time.value)
+  localStorage.setItem("busy",JSON.stringify(busy))
+  document.body.innerHTML="<h2 style='text-align:center;padding:30px'>Agendamento realizado com sucesso 💖</h2>"
+}
+
+buildCalendar()
 </script>
 
 </body>
